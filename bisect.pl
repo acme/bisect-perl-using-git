@@ -6,7 +6,6 @@ use IO::File;
 
 # perlhist says: 5.10.0 2007-Dec-18
 
-
 =for file_added autodie
 
 # for file_added autodie:
@@ -18,7 +17,7 @@ git bisect reset
 git bisect start
 git bisect good 1409bc0658469580630ba458c85fe9cc3cb2d78c
 git bisect bad 675b0f774d374f6951c02c6463c64a746ad46acd
-git bisect run /home/acme/run.pl
+git bisect run /home/acme/git/bisect/bisect.pl
 git bisect reset
 
 =cut
@@ -32,7 +31,7 @@ git bisect reset
 git bisect start
 git bisect good 20f91e418dfa8bdf6cf78614bfebebc28a7613ee
 git bisect bad HEAD
-git bisect run /home/acme/run.pl
+git bisect run /home/acme/git/bisect/bisect.pl
 git bisect reset
 
 =cut
@@ -46,7 +45,7 @@ file_removed('ext/Storable/MANIFEST');
 sub file_added {
     my $filename = shift;
 
-    my $describe = ( call_or_error('git describe') )[1];
+    my $describe = call_or_error('git describe')->{stdout};
     chomp $describe;
     error('No git describe') unless $describe;
     message("\n\n*** $describe ***\n\n");
@@ -63,7 +62,7 @@ sub file_added {
 sub file_removed {
     my $filename = shift;
 
-    my $describe = ( call_or_error('git describe') )[1];
+    my $describe = call_or_error('git describe')->{stdout};
     chomp $describe;
     error('No git describe') unless $describe;
     message("\n\n*** $describe ***\n\n");
@@ -81,7 +80,7 @@ sub perl {
 
     # chdir "perl";
 
-    my $describe = ( call_or_error('git describe') )[1];
+    my $describe = call_or_error('git describe')->{stdout};
     chomp $describe;
     error('No git describe') unless $describe;
     message("\n\n*** $describe ***\n\n");
@@ -112,13 +111,13 @@ sub perl {
     call_or_error('make');
     -x './perl' || error('No ./perl executable');
 
-    my $status = ( call('./perl -Ilib /home/acme/git/testcase.pl') )[0];
-    message("Status: $status\n");
+    my $code = call('./perl -Ilib /home/acme/git/testcase.pl')->{code};
+    message("Status: $code\n");
 
     call_or_error('git clean -dxf');
     call_or_error('git checkout ext/IPC/SysV/SysV.xs makedepend.SH');
 
-    exit $status;
+    exit $code;
 }
 
 sub call {
@@ -127,17 +126,22 @@ sub call {
     my ( $stdout, $stderr ) = tee {
         $status = system($command);
     };
-    return ( $status >> 8, $stdout, $stderr );
+    my $code = $status >> 8;
+    return {
+        code   => $code,
+        stdout => $stdout,
+        stderr => $stderr,
+    };
 }
 
 sub call_or_error {
-    my $command = shift;
-    my ( $status, $stdout, $stderr ) = call($command);
-    unless ( $status == 0 ) {
-        error("$command failed: $?: $stderr");
+    my $command  = shift;
+    my $captured = call($command);
+    unless ( $captured->{code} == 0 ) {
+        error( "$command failed: $?: " . $captured->{stderr} );
     }
     message($command);
-    return ( $status, $stdout, $stderr );
+    return $captured;
 }
 
 sub message {
