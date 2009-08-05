@@ -104,6 +104,14 @@ And then run:
   # Bisecting: 4041 revisions left to test after this
   git bisect run bisect_perl_using_git --action perl_fails \
     --filename ~/testcase.pl
+  # ... after checking out 16 trees and about one hour, it says:
+  # fc8cd66c26827f6c2ee1aa00ab2d3b3c320a4a28 is first bad commit
+  # commit fc8cd66c26827f6c2ee1aa00ab2d3b3c320a4a28
+  # Author: Yves Orton <demerphq@gmail.com>
+  # Date:   Tue Sep 19 03:37:19 2006 +0200
+  #
+  #    Re: \N{...} in regular expression [PATCH]
+  # ...
   git bisect reset
 
 =head1 AUTHOR
