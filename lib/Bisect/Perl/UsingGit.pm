@@ -1,11 +1,13 @@
 package Bisect::Perl::UsingGit;
 use Moose;
+use MooseX::Types::Path::Class;
 with 'MooseX::Getopt';
 use Capture::Tiny qw(tee);
 
-has 'action'   => ( is => 'rw', isa => 'Str',  required => 1 );
-has 'filename' => ( is => 'rw', isa => 'Str',  required => 1 );
-has 'verbose'  => ( is => 'rw', isa => 'Bool', default  => 0 );
+has 'action' => ( is => 'rw', isa => 'Str', required => 1 );
+has 'filename' =>
+    ( is => 'rw', isa => 'Path::Class::File', required => 1, coerce => 1, );
+has 'verbose' => ( is => 'rw', isa => 'Bool', default => 0 );
 
 sub run {
     my $self   = shift;
