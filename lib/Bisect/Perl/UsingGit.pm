@@ -3,6 +3,7 @@ use Moose;
 use MooseX::Types::Path::Class;
 with 'MooseX::Getopt';
 use Capture::Tiny qw(tee);
+our $VERSION = '0.33';
 
 has 'action' => ( is => 'rw', isa => 'Str', required => 1 );
 has 'filename' =>
@@ -130,3 +131,27 @@ sub _error {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Bisect::Perl::UsingGit - Help you to bisect Perl
+
+=head1 DESCRIPTION
+
+L<Bisect::Perl::UsingGit> is a module which holds the code which helps
+you to bisect Perl. See L<bisect_perl_using_git> for practical examples.
+
+=head1 AUTHOR
+
+Leon Brocard, C<< <acme@astray.com> >>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2009, Leon Brocard
+
+=head1 LICENSE
+
+This module is free software; you can redistribute it or modify it
+under the same terms as Perl itself.
