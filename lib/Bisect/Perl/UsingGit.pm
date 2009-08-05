@@ -10,13 +10,14 @@ has 'verbose'  => ( is => 'rw', isa => 'Bool', default  => 0 );
 sub run {
     my $self   = shift;
     my $action = $self->action;
+    $self->_describe();
+
     return $self->$action;
 }
 
 sub file_added {
-    my $self = shift;
+    my $self     = shift;
     my $filename = $self->filename;
-    $self->_describe();
 
     if ( -f $filename ) {
         $self->_message("have $filename");
@@ -28,9 +29,8 @@ sub file_added {
 }
 
 sub file_removed {
-    my $self = shift;
+    my $self     = shift;
     my $filename = $self->filename;
-    $self->_describe();
 
     unless ( -f $filename ) {
         $self->_message("have $filename");
@@ -42,26 +42,27 @@ sub file_removed {
 }
 
 sub perl_fails {
-    my $self = shift;
-        my $filename = $self->filename;
-
-    $self->_describe();
+    my $self     = shift;
+    my $filename = $self->filename;
 
     $self->_call_or_error('git clean -dxf');
 
     # Fix configure error in makedepend: unterminated quoted string
     # http://perl5.git.perl.org/perl.git/commitdiff/a9ff62
-    $self->_call_or_error(q{perl -pi -e "s|##\`\"|##'\`\"|" makedepend.SH}) if -f 'makedepend.SH';
+    $self->_call_or_error(q{perl -pi -e "s|##\`\"|##'\`\"|" makedepend.SH})
+        if -f 'makedepend.SH';
 
     # Allow recent gccs (4.2.0 20060715 onwards) to build perl.
     # It switched from '<command line>' to '<command-line>'.
     # http://perl5.git.perl.org/perl.git/commit/d64920
     $self->_call_or_error(
-        q{perl -pi -e "s|command line|command-line|" makedepend.SH}) if -f 'makedepend.SH';
+        q{perl -pi -e "s|command line|command-line|" makedepend.SH})
+        if -f 'makedepend.SH';
 
     # http://perl5.git.perl.org/perl.git/commit/205bd5
     $self->_call_or_error(
-        q{perl -pi -e "s|#   include <asm/page.h>||" ext/IPC/SysV/SysV.xs}) if -f 'ext/IPC/SysV/SysV.xs';
+        q{perl -pi -e "s|#   include <asm/page.h>||" ext/IPC/SysV/SysV.xs})
+        if -f 'ext/IPC/SysV/SysV.xs';
 
     $self->_call_or_error(
         'sh Configure -des -Dusedevel -Doptimize="-g" -Dcc=ccache\ gcc -Dld=gcc'
@@ -80,15 +81,15 @@ sub perl_fails {
     }
 
     $self->_call_or_error('git clean -dxf');
-    $self->_call_or_error('git checkout ext/IPC/SysV/SysV.xs') if -f 'ext/IPC/SysV/SysV.xs';
+    $self->_call_or_error('git checkout ext/IPC/SysV/SysV.xs')
+        if -f 'ext/IPC/SysV/SysV.xs';
     $self->_call_or_error('git checkout makedepend.SH') if -f 'makedepend.SH';
 
     exit $code;
 }
 
-
 sub _describe {
-    my $self = shift;
+    my $self     = shift;
     my $describe = $self->_call_or_error('git describe')->{stdout};
     chomp $describe;
     $self->_error('No git describe') unless $describe;
@@ -96,7 +97,7 @@ sub _describe {
 }
 
 sub _call {
-    my($self, $command) = @_;
+    my ( $self, $command ) = @_;
     $self->_message('calling $command');
     my $status;
     my ( $stdout, $stderr ) = tee {
@@ -111,7 +112,7 @@ sub _call {
 }
 
 sub _call_or_error {
-    my($self, $command)  = @_;
+    my ( $self, $command ) = @_;
     my $captured = $self->_call($command);
     unless ( $captured->{code} == 0 ) {
         $self->_error( "$command failed: $?: " . $captured->{stderr} );
@@ -121,13 +122,14 @@ sub _call_or_error {
 }
 
 sub _message {
-    my($self, $text) = @_;
-#    $log->print("$text\n");
+    my ( $self, $text ) = @_;
+
+    #    $log->print("$text\n");
     print "$text\n";
 }
 
 sub _error {
-    my($self, $text) = @_;
+    my ( $self, $text ) = @_;
     $self->_message($text);
     exit 125;
 }
