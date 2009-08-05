@@ -4,7 +4,8 @@ use warnings;
 use Capture::Tiny qw(tee);
 use IO::File;
 
-# perlhist says: 5.10.0 2007-Dec-18
+my $log = IO::File->new('>> /home/acme/git/run.log') || die $!;
+$log->autoflush(1);
 
 =for file_added autodie
 
@@ -22,6 +23,8 @@ git bisect reset
 
 =cut
 
+# file_added('./lib/autodie.pm');
+
 =for file_removed ext/Storable/MANIFEST
 
 # for file_added autodie:
@@ -36,54 +39,71 @@ git bisect reset
 
 =cut
 
-my $log = IO::File->new('>> /home/acme/git/run.log') || die $!;
-$log->autoflush(1);
+# file_removed('ext/Storable/MANIFEST');
 
-# file_added('./lib/autodie.pm');
-file_removed('ext/Storable/MANIFEST');
+=for perl_fails
+
+# http://rt.perl.org/rt3/Public/Bug/Display.html?id=62056
+# perl-5.8.8
+# use charnames ':full';
+# my $x;
+# m/$x\N{START OF HEADING}/
+git bisect reset
+git bisect start
+git bisect good perl-5.8.8
+git bisect bad perl-5.10.0
+git bisect run /home/acme/git/bisect/bisect.pl
+git bisect reset
+
+=cut
+
+perl_fails('/home/acme/testcase.pl');
+
+=for command_fails
+
+# for file_added autodie:
+# git log --before=2009-06-01 -n 1
+# 20f91e418dfa8bdf6cf78614bfebebc28a7613ee
+git bisect reset
+git bisect start
+git bisect good 20f91e418dfa8bdf6cf78614bfebebc28a7613ee
+git bisect bad HEAD
+git bisect run /home/acme/git/bisect/bisect.pl
+git bisect reset
+
+=cut
+
+# command_fails('"./perl -Ilib $filename ');
 
 sub file_added {
     my $filename = shift;
-
-    my $describe = call_or_error('git describe')->{stdout};
-    chomp $describe;
-    error('No git describe') unless $describe;
-    message("\n\n*** $describe ***\n\n");
+    describe();
 
     if ( -f $filename ) {
-        message("have $filename\n");
+        message("have $filename");
         exit 1;
     } else {
-        message("do not have $filename\n");
+        message("do not have $filename");
         exit 0;
     }
 }
 
 sub file_removed {
     my $filename = shift;
-
-    my $describe = call_or_error('git describe')->{stdout};
-    chomp $describe;
-    error('No git describe') unless $describe;
-    message("\n\n*** $describe ***\n\n");
+    describe();
 
     if ( -f $filename ) {
-        message("have $filename\n");
+        message("have $filename");
         exit 0;
     } else {
-        message("do not have $filename\n");
+        message("do not have $filename");
         exit 1;
     }
 }
 
-sub perl {
-
-    # chdir "perl";
-
-    my $describe = call_or_error('git describe')->{stdout};
-    chomp $describe;
-    error('No git describe') unless $describe;
-    message("\n\n*** $describe ***\n\n");
+sub perl_fails {
+    my $filename = shift;
+    describe();
 
     call_or_error('git clean -dxf');
 
@@ -111,13 +131,24 @@ sub perl {
     call_or_error('make');
     -x './perl' || error('No ./perl executable');
 
-    my $code = call('./perl -Ilib /home/acme/git/testcase.pl')->{code};
-    message("Status: $code\n");
+    my $code = call("./perl -Ilib $filename")->{code};
+    message("Status: $code");
+    if ( $code < 0 || $code >= 128 ) {
+        message("Changing code to 127 as it is < 0 or >= 128");
+        $code = 127;
+    }
 
     call_or_error('git clean -dxf');
     call_or_error('git checkout ext/IPC/SysV/SysV.xs makedepend.SH');
 
     exit $code;
+}
+
+sub describe {
+    my $describe = call_or_error('git describe')->{stdout};
+    chomp $describe;
+    error('No git describe') unless $describe;
+    message("\n*** $describe ***\n");
 }
 
 sub call {
@@ -152,9 +183,7 @@ sub message {
 
 sub error {
     my $text = shift;
-    $log->print("$text\n");
-    warn $text;
-    exit 125;
+    message($text);
 }
 
 __END__
