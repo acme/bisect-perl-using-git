@@ -1,0 +1,30 @@
+#!/home/acme/perl-5.10.0/bin/perl
+use strict;
+use warnings;
+use lib 'lib';
+use Bisect::Perl::UsingGit;
+
+chdir('/home/acme/git/perl-ssh/');
+my $app = Bisect::Perl::UsingGit->new_with_options();
+$app->run;
+
+__END__
+
+# for file_added autodie:
+# git log --before=2008-12-01 -n 1
+# 1409bc0658469580630ba458c85fe9cc3cb2d78c
+# git log --before=2008-12-31 -n 1
+# 675b0f774d374f6951c02c6463c64a746ad46acd
+git bisect reset
+git bisect start
+git bisect good 1409bc0658469580630ba458c85fe9cc3cb2d78c
+git bisect bad 675b0f774d374f6951c02c6463c64a746ad46acd
+git bisect run /home/acme/git/bisect/bin/bisect_perl_using_git --action file_added --filename lib/autodie.pm
+git bisect reset
+
+git bisect reset
+git bisect start
+git bisect good perl-5.8.8
+git bisect bad perl-5.10.0
+git bisect run /home/acme/git/bisect/bin/bisect_perl_using_git --action perl_fails --filename /home/acme/testcase.pl
+git bisect reset
