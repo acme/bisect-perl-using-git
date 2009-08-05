@@ -14,7 +14,7 @@ sub run {
     my $action = $self->action;
     $self->_describe();
 
-    return $self->$action;
+    exit $self->$action;
 }
 
 sub file_added {
@@ -23,24 +23,17 @@ sub file_added {
 
     if ( -f $filename ) {
         $self->_message("have $filename");
-        exit 1;
+        return 1;
     } else {
         $self->_message("do not have $filename");
-        exit 0;
+        return 0;
     }
 }
 
 sub file_removed {
     my $self     = shift;
     my $filename = $self->filename;
-
-    unless ( -f $filename ) {
-        $self->_message("have $filename");
-        exit 1;
-    } else {
-        $self->_message("do not have $filename");
-        exit 0;
-    }
+    return !$self->file_added($filename);
 }
 
 sub perl_fails {
@@ -87,7 +80,7 @@ sub perl_fails {
         if -f 'ext/IPC/SysV/SysV.xs';
     $self->_call_or_error('git checkout makedepend.SH') if -f 'makedepend.SH';
 
-    exit $code;
+    return $code;
 }
 
 sub _describe {
